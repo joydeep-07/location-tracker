@@ -210,7 +210,6 @@ const Viewer = () => {
           </div>
         ) : position ? (
           <MapContainer
-            key={position?.toString()}
             center={position}
             zoom={15}
             className="w-full h-full"
