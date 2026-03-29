@@ -101,15 +101,27 @@ const Dashboard = () => {
 
         // Start watching position
         if (navigator.geolocation) {
-          watchIdRef.current = navigator.geolocation.watchPosition(
+          navigator.geolocation.getCurrentPosition(
             (pos) => {
               const coords = [pos.coords.latitude, pos.coords.longitude];
               setPosition(coords);
               socket.emit("send-location", { code: data.code, coordinates: coords });
             },
-            (err) => setError("Error watching position"),
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            (err) => console.warn("Initial location error", err),
+            { enableHighAccuracy: true }
           );
+
+          watchIdRef.current = setInterval(() => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const coords = [pos.coords.latitude, pos.coords.longitude];
+                setPosition(coords);
+                socket.emit("send-location", { code: data.code, coordinates: coords });
+              },
+              (err) => setError("Error watching position"),
+              { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            );
+          }, 5000);
         } else {
           setError("Geolocation is not supported by your browser");
         }
@@ -123,7 +135,7 @@ const Dashboard = () => {
 
   const stopSharing = async () => {
     if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
+      clearInterval(watchIdRef.current);
       watchIdRef.current = null;
     }
 
@@ -354,7 +366,7 @@ const Dashboard = () => {
       <div className="flex-1 h-full relative z-10 w-full min-w-0">
         {position ? (
           <MapContainer
-            key={position?.toString() + (session ? "-active" : "-idle")}
+            // Removed key prop to avoid map remounting on every position change
             center={position}
             zoom={session ? 16 : 14}
             className="w-full h-full"
