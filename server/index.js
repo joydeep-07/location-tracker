@@ -13,14 +13,19 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: 'http://localhost:5173',
-    credentials: true,
-  },
-});
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+const allowedOrigins = process.env.CLIENT_URL 
+  ? [process.env.CLIENT_URL, 'http://localhost:5173', 'https://location-live.netlify.app'] 
+  : ['http://localhost:5173', 'https://location-live.netlify.app'];
+
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+};
+
+const io = new Server(server, { cors: corsOptions });
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
