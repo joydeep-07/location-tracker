@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = "https://location-tracker-epqf.onrender.com";
 
 export const API_BASE_URL = `${BASE_URL}/api`;
 export const SOCKET_URL = BASE_URL;
