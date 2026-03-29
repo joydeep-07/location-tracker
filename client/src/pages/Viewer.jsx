@@ -1,83 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { socket } from '../socket';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import { Navigation, AlertCircle, MapPin } from 'lucide-react';
-import { ENDPOINTS } from '../endpoints';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { socket } from "../socket";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import { Navigation, AlertCircle, MapPin } from "lucide-react";
+import { ENDPOINTS } from "../endpoints";
+import "leaflet/dist/leaflet.css";
 
+// ✅ Fix marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// ✅ Fix resize issue (same as dashboard)
+const FixMapSize = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+
+    setTimeout(() => map.invalidateSize(), 300);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [map]);
+
+  return null;
+};
+
+// ✅ Smooth recenter (same logic as dashboard)
 const RecenterMap = ({ position }) => {
   const map = useMap();
+
   useEffect(() => {
     if (position) {
-      map.setView(position, map.getZoom());
+      const currentZoom = map.getZoom();
+      map.setView(position, currentZoom < 14 ? 14 : currentZoom, {
+        animate: true,
+      });
     }
   }, [position, map]);
+
   return null;
 };
 
 const Viewer = () => {
   const { code: paramCode } = useParams();
-  const [code, setCode] = useState(paramCode || '');
+  const [code, setCode] = useState(paramCode || "");
   const [isTracking, setIsTracking] = useState(false);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [position, setPosition] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [ended, setEnded] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    socket.on('receive-location', (coords) => {
+    socket.on("receive-location", (coords) => {
       setPosition(coords);
     });
 
-    socket.on('session-ended', () => {
+    socket.on("session-ended", () => {
       setEnded(true);
       setIsTracking(false);
       socket.disconnect();
     });
 
-    socket.on('error', (err) => {
+    socket.on("error", (err) => {
       setError(err.message);
       setIsTracking(false);
     });
 
     return () => {
-      socket.off('receive-location');
-      socket.off('session-ended');
-      socket.off('error');
-      if (isTracking) {
-        socket.disconnect();
-      }
+      socket.off("receive-location");
+      socket.off("session-ended");
+      socket.off("error");
+      if (isTracking) socket.disconnect();
     };
   }, [isTracking]);
 
   const handleTrack = async (e) => {
     if (e) e.preventDefault();
-    setError('');
+    setError("");
     setEnded(false);
-    
+
     try {
       const res = await fetch(ENDPOINTS.SESSION.VERIFY(code), {
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
+
       const data = await res.json();
-      
+
       if (res.ok) {
         setSessionInfo(data);
         setIsTracking(true);
         navigate(`/viewer/${code}`);
-        
+
         socket.connect();
-        socket.emit('join-room', { code, role: 'viewer', user });
+        socket.emit("join-room", { code, role: "viewer", user });
       } else {
-        setError(data.message || 'Invalid code');
+        setError(data.message || "Invalid code");
       }
-    } catch (err) {
-      setError('Server error');
+    } catch {
+      setError("Server error");
     }
   };
 
@@ -85,11 +120,12 @@ const Viewer = () => {
     setIsTracking(false);
     setPosition(null);
     setSessionInfo(null);
-    setCode('');
-    navigate('/viewer');
+    setCode("");
+    navigate("/viewer");
     socket.disconnect();
   };
 
+  // ================= ENTRY SCREEN =================
   if (!isTracking && !ended) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col">
@@ -97,81 +133,111 @@ const Viewer = () => {
           <div className="flex justify-center mb-6">
             <Navigation size={48} className="text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">Track Location</h2>
-          <p className="text-center text-gray-500 mb-6 text-sm">Enter the 6-character code shared by the sender.</p>
-          
-          {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4 flex items-center gap-2"><AlertCircle size={18} /><span>{error}</span></div>}
-          
-          <form onSubmit={handleTrack} className="space-y-4">
-            <div>
-              <input 
-                type="text" 
-                required 
-                maxLength={6}
-                placeholder="e.g. A1B2C3"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-blue-500 focus:ring-blue-500 text-center font-mono text-xl tracking-widest uppercase" 
-                value={code} 
-                onChange={(e) => setCode(e.target.value.toUpperCase())} 
-              />
+
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">
+            Track Location
+          </h2>
+
+          <p className="text-center text-gray-500 mb-6 text-sm">
+            Enter the 6-character code shared by the sender.
+          </p>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded mb-4 flex items-center gap-2">
+              <AlertCircle size={18} />
+              <span>{error}</span>
             </div>
-            <button type="submit" className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded hover:bg-blue-700 transition">Start Tracking</button>
+          )}
+
+          <form onSubmit={handleTrack} className="space-y-4">
+            <input
+              type="text"
+              required
+              maxLength={6}
+              placeholder="A1B2C3"
+              className="w-full p-3 border rounded text-center font-mono text-xl tracking-widest uppercase"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+            />
+
+            <button className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition">
+              Start Tracking
+            </button>
           </form>
-          <div className="mt-4 text-center">
-             <button onClick={() => navigate('/dashboard')} className="text-blue-600 text-sm hover:underline">Go to Dashboard</button>
-          </div>
         </div>
       </div>
     );
   }
 
+  // ================= MAIN UI =================
   return (
-    <div className="flex h-screen bg-gray-100 flex-col md:flex-row">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-100 flex-col md:flex-row">
+      {/* Sidebar */}
       <div className="w-full md:w-80 bg-white shadow-md p-6 flex flex-col z-10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Live Tracker</h2>
-          <button onClick={() => navigate('/dashboard')} className="text-xs text-blue-600 hover:underline">My Dashboard</button>
-        </div>
+        <h2 className="text-xl font-bold mb-6">Live Tracker</h2>
 
         {ended ? (
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center">
-             <AlertCircle className="mx-auto text-yellow-600 mb-2" size={32} />
-             <h3 className="font-bold text-yellow-800 mb-1">Session Ended</h3>
-             <p className="text-sm text-yellow-700 mb-4">The sender has stopped sharing their location.</p>
-             <button onClick={stopTrackingUI} className="bg-yellow-600 text-white px-4 py-2 rounded text-sm hover:bg-yellow-700">Track Another</button>
+          <div className="bg-yellow-50 p-4 rounded">
+            Session Ended
+            <button
+              onClick={stopTrackingUI}
+              className="mt-3 w-full bg-yellow-600 text-white py-2 rounded"
+            >
+              Track Another
+            </button>
           </div>
         ) : (
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
-             <div className="flex items-center gap-3 mb-3 pb-3 border-b border-blue-200">
-               <div className="w-10 h-10 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center font-bold">
-                 {sessionInfo?.senderId?.name?.charAt(0) || 'S'}
-               </div>
-               <div>
-                 <p className="font-semibold text-gray-800">{sessionInfo?.senderId?.name || 'Sender'}</p>
-                 <p className="text-xs text-gray-500">Live Location</p>
-               </div>
-             </div>
-             <p className="text-xs text-blue-600 mb-4 flex items-center gap-1"><MapPin size={12}/> Receiving updates...</p>
-             <button onClick={stopTrackingUI} className="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded text-sm font-medium hover:bg-red-100 transition">Stop Tracking</button>
+          <div className="bg-blue-50 p-4 rounded">
+            <p className="text-sm mb-2">
+              Tracking: {sessionInfo?.senderId?.name || "Sender"}
+            </p>
+            <button
+              onClick={stopTrackingUI}
+              className="w-full bg-red-100 text-red-600 py-2 rounded"
+            >
+              Stop Tracking
+            </button>
           </div>
         )}
       </div>
 
-      <div className="flex-1 relative z-0" style={{ height: '100vh' }}>
+      {/* MAP */}
+      <div className="flex-1 h-full relative z-10 w-full min-w-0">
         {!position && !ended ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-            <p className="text-gray-500 font-medium animate-pulse">Waiting for location data...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+            <MapPin size={48} className="mb-4 opacity-50 animate-bounce" />
+            <p className="font-medium">Waiting for live location...</p>
           </div>
         ) : position ? (
-          <MapContainer center={position} zoom={15} className="w-full h-full" style={{ height: '100%', width: '100%' }}>
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <MapContainer
+            key={position?.toString()}
+            center={position}
+            zoom={15}
+            className="w-full h-full"
+            zoomControl={false}
+            minZoom={4}
+            maxZoom={18}
+          >
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution="&copy; OSM & CARTO"
+            />
+
+            {/* 🔥 Live badge */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg z-[1000] text-sm animate-pulse">
+              Live Tracking Active
+            </div>
+
             <Marker position={position}>
-              <Popup>{sessionInfo?.senderId?.name || 'Sender'} is here</Popup>
+              <Popup>{sessionInfo?.senderId?.name || "Sender"} is here</Popup>
             </Marker>
+
             <RecenterMap position={position} />
+            <FixMapSize />
           </MapContainer>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-             <p className="text-gray-400">Map unavailable</p>
+            <p className="text-gray-400">Map unavailable</p>
           </div>
         )}
       </div>

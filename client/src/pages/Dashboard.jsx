@@ -166,7 +166,7 @@ const Dashboard = () => {
       {/* Mobile Hamburger */}
       <button
         onClick={() => setIsPanelOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white text-gray-800 rounded-2xl shadow-lg border border-gray-200 hover:bg-gray-50"
+        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white text-gray-800 rounded-sm shadow-lg border border-gray-200 hover:bg-gray-50"
       >
         <Menu size={24} />
       </button>
@@ -197,12 +197,12 @@ const Dashboard = () => {
                 {!session ? (
                   <button
                     onClick={startSharing}
-                    className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-3 rounded-xl font-medium shadow-sm hover:scale-[1.02] transition-all w-full"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-3 rounded-sm font-medium shadow-sm hover:scale-[1.02] transition-all w-full"
                   >
                     Start Sharing
                   </button>
                 ) : (
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-4">
+                  <div className="bg-blue-50 border border-blue-100 rounded-sm p-4 space-y-4">
                     <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Your Tracking Code</p>
                     <div className="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
                       <p className="text-lg font-mono font-bold text-gray-800 tracking-widest">
@@ -279,20 +279,20 @@ const Dashboard = () => {
         {!session ? (
           <button
             onClick={startSharing}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 px-4 rounded-xl shadow-md transition-all active:scale-[0.98]"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 px-4 rounded-sm shadow-md transition-all active:scale-[0.98]"
           >
             Start Sharing Location
           </button>
         ) : (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-sm p-4 space-y-4">
             <p className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Your Tracking Code</p>
-            <div className="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between bg-white px-4 py-3 rounded-sm border border-blue-200 shadow-sm">
               <span className="text-lg font-mono font-bold text-gray-800 tracking-widest">
                 {session.code}
               </span>
               <button
                 onClick={copyCode}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-sm transition-colors"
                 title="Copy code"
               >
                 <Copy size={20} />
@@ -300,7 +300,7 @@ const Dashboard = () => {
             </div>
             <button
               onClick={stopSharing}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-3 rounded-xl shadow-sm transition-all active:scale-[0.98]"
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 rounded-sm shadow-sm transition-all active:scale-[0.98]"
             >
               Stop Sharing
             </button>
@@ -359,6 +359,8 @@ const Dashboard = () => {
             zoom={session ? 16 : 14}
             className="w-full h-full"
             zoomControl={false}
+            minZoom={4}
+            maxZoom={18}
           >
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
